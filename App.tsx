@@ -1,6 +1,6 @@
 import { onAuthStateChanged, User } from 'firebase/auth';
 import React, { useEffect, useState } from 'react';
-import { auth, deleteCaseFromFirestore, logEvent, saveCaseToFirestore, setAnalyticsUserId, subscribeToCases } from './services/firebase';
+import { auth, deleteCaseFromFirestore, logEvent, saveCaseToFirestore, setAnalyticsUserId, setAnalyticsUserProperties, subscribeToCases } from './services/firebase';
 import { Case, Toast, ViewState } from './types';
 import { generateId } from './utils';
 
@@ -24,12 +24,42 @@ const App: React.FC = () => {
 
   const activeCase = cases.find(c => c.id === activeCaseId) || null;
 
+  // Capture URL parameters on first load
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const userProperties: Record<string, any> = {};
+
+    // Capture UTM parameters
+    const utmSource = urlParams.get('utm_source');
+    const utmMedium = urlParams.get('utm_medium');
+    const utmCampaign = urlParams.get('utm_campaign');
+    const source = urlParams.get('source');
+
+    if (utmSource) userProperties.utm_source = utmSource;
+    if (utmMedium) userProperties.utm_medium = utmMedium;
+    if (utmCampaign) userProperties.utm_campaign = utmCampaign;
+    if (source) userProperties.source = source;
+
+    // Set user properties if we have any
+    if (Object.keys(userProperties).length > 0) {
+      setAnalyticsUserProperties(userProperties);
+    }
+  }, []); // Run only once on mount
+
   // Track view changes
   useEffect(() => {
     if (user) {
       logEvent('screen_view', { screen_name: view });
+
+      // Track case_viewed when navigating to CASE_DETAIL
+      if (view === 'CASE_DETAIL' && activeCase) {
+        logEvent('case_viewed', {
+          case_id: activeCase.id,
+          case_name: activeCase.title
+        });
+      }
     }
-  }, [view, user]);
+  }, [view, user, activeCase]);
 
   // Track voice session start/end
   useEffect(() => {
