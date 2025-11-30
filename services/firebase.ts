@@ -1,23 +1,18 @@
 import * as firebaseApp from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
-import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { signOut as firebaseSignOut, getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { collection, deleteDoc, doc, getFirestore, onSnapshot, orderBy, query, setDoc } from 'firebase/firestore';
 import { Case } from '../types';
 
-// ------------------------------------------------------------------
-// 🔴 IMPORTANT: REPLACE THE OBJECT BELOW WITH YOUR OWN FIREBASE CONFIG
-// 1. Go to console.firebase.google.com
-// 2. Open your project > Project Settings > General > Your Apps > Web
-// 3. Copy the firebaseConfig object and paste it below
-// ------------------------------------------------------------------
+// Firebase config is sourced from environment variables (Vite uses the VITE_ prefix).
+// Keep secrets out of the codebase; see .env.local.example for expected keys.
 const firebaseConfig = {
-  // Example Placeholder - REPLACE THESE VALUES
-  apiKey: "AIzaSyDvfEvR4_2nff-X2w0cQwsvRTGHWLJokbM",
-  authDomain: "pressure-lab.firebaseapp.com",
-  projectId: "pressure-lab",
-  storageBucket: "pressure-lab.firebasestorage.app",
-  messagingSenderId: "921329523682",
-  appId: "1:921329523682:web:a58ab371f215f0f9cef7bb",
-  measurementId: "G-RWMZKCN0FP"
+  apiKey: process.env.VITE_FIREBASE_API_KEY,
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.VITE_FIREBASE_APP_ID,
+  measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 // Initialize only if config is valid-ish to avoid immediate crash on load, 
