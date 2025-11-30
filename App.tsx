@@ -1,6 +1,6 @@
 import { onAuthStateChanged, User } from 'firebase/auth';
 import React, { useEffect, useState } from 'react';
-import { auth, deleteCaseFromFirestore, saveCaseToFirestore, subscribeToCases } from './services/firebase';
+import { auth, deleteCaseFromFirestore, logEvent, saveCaseToFirestore, setAnalyticsUserId, subscribeToCases } from './services/firebase';
 import { Case, Toast, ViewState } from './types';
 import { generateId } from './utils';
 
@@ -22,11 +22,32 @@ const App: React.FC = () => {
   const [showVoiceSession, setShowVoiceSession] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
+  const activeCase = cases.find(c => c.id === activeCaseId) || null;
+
+  // Track view changes
+  useEffect(() => {
+    if (user) {
+      logEvent('screen_view', { screen_name: view });
+    }
+  }, [view, user]);
+
+  // Track voice session start/end
+  useEffect(() => {
+    if (showVoiceSession && activeCaseId) {
+      logEvent('voice_session_started', { case_id: activeCaseId });
+    }
+  }, [showVoiceSession, activeCaseId]);
+
   // 1. Listen for Authentication State
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setAuthLoading(false);
+
+      if (currentUser) {
+        setAnalyticsUserId(currentUser.uid);
+        logEvent('login', { method: 'google' });
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -55,15 +76,17 @@ const App: React.FC = () => {
     // Optimistic Update (UI updates immediately, but real source of truth is the Listener above)
     // We actually don't need to manually setCases here because the listener will do it,
     // but for immediate feedback on 'Create', we handle navigation.
-    
+
     try {
         await saveCaseToFirestore(updatedCase);
-        
+
         if (view === 'CREATE_CASE') {
+            logEvent('case_created', { case_id: updatedCase.id });
             setActiveCaseId(updatedCase.id);
             setView('CASE_DETAIL');
             addToast("Case created successfully", "success");
         } else {
+            logEvent('case_updated', { case_id: updatedCase.id });
             addToast("Case updated", "success");
         }
     } catch (error) {
@@ -79,6 +102,7 @@ const App: React.FC = () => {
 
     try {
         await deleteCaseFromFirestore(id);
+        logEvent('case_deleted', { case_id: id });
         if (activeCaseId === id) {
             setActiveCaseId(null);
             setView('HOME');
@@ -96,8 +120,6 @@ const App: React.FC = () => {
   if (!user) {
     return <Login />;
   }
-
-  const activeCase = cases.find(c => c.id === activeCaseId) || null;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
