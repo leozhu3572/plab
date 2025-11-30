@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Case, Material, Thread, Role, Message } from '../types';
 import { generateId, fileToBase64, estimateTokens } from '../utils';
 import { analyzeArgument } from '../services/geminiService';
+import { logEvent } from '../services/firebase';
 
 interface CaseEditorProps {
   initialCase?: Case;
@@ -81,6 +82,14 @@ const CaseEditor: React.FC<CaseEditorProps> = ({ initialCase, onSave, onCancel }
     if (!initialCase && initialThreads.length > 0) {
        const validArguments = initialThreads.filter(arg => arg.trim().length > 0);
        const processedThreads: Thread[] = [];
+
+       // Track argument submission
+       if (validArguments.length > 0) {
+         logEvent('argument_submitted', {
+           case_id: caseId,
+           argument_count: validArguments.length
+         });
+       }
 
        for (let i = 0; i < validArguments.length; i++) {
          const arg = validArguments[i];
