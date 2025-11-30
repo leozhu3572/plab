@@ -1,0 +1,7 @@
+{
+  "name": "Pressure Lab",
+  "description": "A simulation platform for lawyers to practice mock trials against an AI opposing counsel using voice and text.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
