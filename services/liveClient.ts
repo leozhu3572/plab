@@ -16,10 +16,26 @@ export class LiveClient {
   public onConnectionStateChange: ((isConnected: boolean) => void) | null = null;
 
   constructor() {
-    this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // Initialize without API key - will fetch it when connecting
+    this.ai = null as any;
   }
 
   async connect(systemInstruction: string) {
+    // Fetch API key from backend
+    const configResponse = await fetch('/api/get-session-config', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+
+    if (!configResponse.ok) {
+      throw new Error('Failed to get session configuration');
+    }
+
+    const { apiKey } = await configResponse.json();
+    this.ai = new GoogleGenAI({ apiKey });
+
     this.inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
     this.outputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
     
